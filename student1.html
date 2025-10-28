@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Object Detection (Excluding Humans)</title>
+    <!-- 1. Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 2. Load TensorFlow.js and the COCO-SSD model -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@latest/dist/coco-ssd.min.js"></script>
+    <style>
+        /* Custom styles to overlay canvas on top of video */
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px; /* Default video width */
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        #video, #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #video {
+            /* Flip the video horizontally for a "mirror" effect */
+            transform: scaleX(-1);
+        }
+        #canvas {
+            z-index: 10;
+        }
+        /* Custom loading spinner */
+        .loader {
+            border: 8px solid #f3f3f3; /* Light grey */
+            border-top: 8px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4 font-sans">
+
+    <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl w-full max-w-3xl">
+        <h1 class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-4">
+            Object Detection (Excluding Humans)
+        </h1>
+        <p class="text-center text-gray-600 mb-6">
+            This app uses your webcam to find objects in real-time. It will only highlight objects that are not people.
+        </p>
+
+        <!-- Loading State -->
+        <div id="loading" class="flex flex-col items-center justify-center p-8">
+            <div class="loader"></div>
+            <p id="loading-text" class="text-gray-600 mt-4">Loading Machine Learning Model...</p>
+        </div>
+
+        <!-- Main Content (Video + Canvas) -->
+        <!-- This container's aspect ratio will be set by the video stream -->
+        <div id="content" class="video-container hidden" style="aspect-ratio: 640 / 480;">
+            <video id="video" autoplay playsinline muted></video>
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <!-- Status Message Box -->
+        <div id="status-box" class="mt-4 p-3 bg-blue-100 text-blue-800 rounded-lg text-center hidden">
+            <p id="status-message"></p>
+        </div>
+    </div>
+
+    <script>
+        // Get references to all our HTML elements
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const loadingDiv = document.getElementById('loading');
+        const loadingText = document.getElementById('loading-text');
+        const contentDiv = document.getElementById('content');
+        const statusBox = document.getElementById('status-box');
+        const statusMessage = document.getElementById('status-message');
+
+        let model = null;
+
+        // Function to show a status message
+        function showStatus(message) {
+            statusMessage.textContent = message;
+            statusBox.classList.remove('hidden');
+        }
+
+        // --- Main Function ---
+        async function runDetection() {
+            try {
+                // 1. Load the COCO-SSD model
+                console.log('Loading model...');
+                model = await cocoSsd.load();
+                console.log('Model loaded.');
+                loadingText.textContent = 'Starting Webcam...';
+
+                // 2. Request webcam access
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 },
+                    audio: false
+                });
+                video.srcObject = stream;
+
+                // 3. Wait for the video to start playing
+                video.onloadedmetadata = () => {
+                    console.log('Webcam started.');
+                    // Set canvas dimensions to match the video
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    
+                    // Set the container aspect ratio to match the video
+                    contentDiv.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
+
+                    // Hide loading and show video
+                    loadingDiv.classList.add('hidden');
+                    contentDiv.classList.remove('hidden');
+                    showStatus('Webcam active. Detecting objects...');
+
+                    // 4. Start the detection loop
+                    detectFrame();
+                };
+
+            } catch (error) {
+                console.error('Failed to initialize:', error);
+                loadingText.textContent = 'Error: Could not start webcam or load model.';
+                loadingText.classList.add('text-red-600');
+                if (error.name === "NotAllowedError") {
+                    loadingText.textContent = 'Error: Webcam access denied. Please allow camera permissions.';
+                }
+            }
+        }
+
+        // --- Detection Loop Function ---
+        async function detectFrame() {
+            if (!model) return;
+
+            // 1. Get predictions from the model
+            const predictions = await model.detect(video);
+
+            // 2. Clear the canvas for new drawings
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 3. Filter predictions to *exclude* 'person'
+            const filteredPredictions = predictions.filter(prediction => {
+                return prediction.class !== 'person';
+            });
+
+            // 4. Draw boxes for the filtered predictions
+            drawBoundingBoxes(filteredPredictions);
+
+            // 5. Loop forever
+            requestAnimationFrame(detectFrame);
+        }
+
+        // --- Drawing Function ---
+        function drawBoundingBoxes(predictions) {
+            // Set styling for the boxes
+            ctx.strokeStyle = '#00FFFF'; // Bright cyan
+            ctx.lineWidth = 2;
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#00FFFF';
+
+            predictions.forEach(prediction => {
+                const [x, y, width, height] = prediction.bbox;
+                
+                // --- IMPORTANT: Adjust for mirrored video ---
+                // The video is flipped, so we must also flip the x-coordinate
+                const mirroredX = canvas.width - x - width;
+
+                // Draw the bounding box
+                ctx.beginPath();
+                ctx.rect(mirroredX, y, width, height);
+                ctx.stroke();
+
+                // Draw the label background
+                const text = `${prediction.class} (${Math.round(prediction.score * 100)}%)`;
+                const textWidth = ctx.measureText(text).width;
+                ctx.fillRect(mirroredX, y, textWidth + 8, 20);
+
+                // Draw the label text (in black)
+                ctx.fillStyle = '#000000';
+                ctx.fillText(text, mirroredX + 4, y + 16);
+                
+                // Reset fillStyle for the next box
+                ctx.fillStyle = '#00FFFF';
+            });
+        }
+
+        // Start the whole process
+        runDetection();
+    </script>
+</body>
+</html>
+
