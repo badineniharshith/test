@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive AI Object Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivrnet.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@latest/dist/coco-ssd.min.js"></script>
+    <style>
+        /* Custom styles for the webcam interface */
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            background-color: #1e293b;
+        }
+        #video, #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #video {
+            transform: scaleX(-1); /* Mirror effect */
+        }
+        #canvas {
+            z-index: 10;
+        }
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .timer {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        .control-btn {
+            transition: all 0.2s ease;
+        }
+        .control-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-800 min-h-screen flex items-center justify-center p-4 font-sans text-white">
+
+    <div class="bg-slate-800 p-6 md:p-8 rounded-xl shadow-2xl w-full max-w-3xl border border-slate-700">
+        <h1 class="text-2xl md:text-3xl font-bold text-center text-white mb-2">
+            AI Interview Challenge
+        </h1>
+        <p class="text-center text-slate-300 mb-6">
+            Find and show the requested object to the camera.
+        </p>
+
+        <div class="flex justify-between items-center mb-4">
+            <div class="timer text-xl bg-slate-700 px-4 py-2 rounded-lg">
+                <span id="timer-minutes">00</span>:<span id="timer-seconds">00</span>
+            </div>
+            <div id="status-box" class="bg-blue-900/50 text-blue-200 px-4 py-2 rounded-lg text-center">
+                <p id="status-message">Ready to start</p>
+            </div>
+        </div>
+        
+        <div id="prompt-box" class="bg-slate-900 border border-blue-500 rounded-lg p-4 mb-4 text-center hidden">
+            <p class="text-slate-400 text-sm mb-1">AI Interviewer asks:</p>
+            <p id="prompt-message" class="text-xl font-bold text-white">Waiting for challenge...</p>
+        </div>
+
+        <div id="loading" class="flex flex-col items-center justify-center p-8">
+            <div class="loader"></div>
+            <p id="loading-text" class="text-slate-300 mt-4">Loading Machine Learning Model...</p>
+        </div>
+
+        <div id="content" class="video-container hidden mx-auto" style="aspect-ratio: 640 / 480;">
+            <video id="video" autoplay playsinline muted></video>
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            <div class="bg-slate-700 p-4 rounded-lg">
+                <label for="confidence-slider" class="block text-sm font-medium text-slate-300 mb-2">
+                    Detection Confidence: <span id="confidence-label" class="font-bold text-white">50%</span>
+                </label>
+                <input id="confidence-slider" type="range" min="0.1" max="0.9" step="0.05" value="0.5" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+            </div>
+            <div class="bg-slate-700 p-4 rounded-lg">
+                <p class="text-sm font-medium text-slate-300 mb-2">Currently Detecting (Non-Human):</p>
+                <div id="detected-list" class="text-white font-mono text-sm h-16 overflow-y-auto">
+                    ---
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-4 mt-6">
+            <button id="start-btn" class="control-btn bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium flex items-center" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
+                Start Challenge
+            </button>
+            <button id="stop-btn" class="control-btn bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium flex items-center" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" /></svg>
+                Stop Challenge
+            </button>
+            <button id="skip-btn" class="control-btn bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg font-medium flex items-center" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M4.293 15.707a1 1 0 010-1.414L8.586 10 4.293 5.707a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                Skip Item
+            </button>
+            <button id="toggle-cam-btn" class="control-btn bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" /></svg>
+                Toggle Camera
+            </button>
+            <button id="reset-btn" class="control-btn bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium flex items-center" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" /></svg>
+                Reset
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Get references to all HTML elements
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const loadingDiv = document.getElementById('loading');
+        const loadingText = document.getElementById('loading-text');
+        const contentDiv = document.getElementById('content');
+        const statusBox = document.getElementById('status-box');
+        const statusMessage = document.getElementById('status-message');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const toggleCamBtn = document.getElementById('toggle-cam-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const timerMinutes = document.getElementById('timer-minutes');
+        const timerSeconds = document.getElementById('timer-seconds');
+
+        // --- NEW Elements ---
+        const promptBox = document.getElementById('prompt-box');
+        const promptMessage = document.getElementById('prompt-message');
+        const skipBtn = document.getElementById('skip-btn');
+        const confidenceSlider = document.getElementById('confidence-slider');
+        const confidenceLabel = document.getElementById('confidence-label');
+        const detectedList = document.getElementById('detected-list');
+
+        // Application state variables
+        let model = null;
+        let stream = null;
+        let isDetecting = false;
+        let isCameraOn = false;
+        let timerInterval = null;
+        let timerSecondsValue = 0;
+        let timerMinutesValue = 0;
+        let confidenceThreshold = 0.5; // Default confidence
+        let currentTarget = null;
+        let targetFound = false;
+
+        // --- NEW: List of items for the challenge ---
+        const TARGET_OBJECTS = [
+            'bottle', 'cup', 'laptop', 'keyboard', 'mouse', 
+            'book', 'cell phone', 'remote', 'scissors', 'clock', 'key'
+        ];
+
+        // --- Timer Functions (Unchanged) ---
+        function updateTimer() {
+            timerSecondsValue++;
+            if (timerSecondsValue >= 60) {
+                timerSecondsValue = 0;
+                timerMinutesValue++;
+            }
+            timerMinutes.textContent = timerMinutesValue.toString().padStart(2, '0');
+            timerSeconds.textContent = timerSecondsValue.toString().padStart(2, '0');
+        }
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+        }
+        function resetTimer() {
+            stopTimer();
+            timerSecondsValue = 0;
+            timerMinutesValue = 0;
+            timerMinutes.textContent = '00';
+            timerSeconds.textContent = '00';
+        }
+
+        // --- Status Function (Updated) ---
+        function showStatus(message, type = 'info') {
+            statusMessage.textContent = message;
+            // Reset styles
+            statusBox.classList.remove('bg-blue-900/50', 'text-blue-200', 'bg-green-600', 'text-white', 'bg-red-600');
+            
+            if (type === 'success') {
+                statusBox.classList.add('bg-green-600', 'text-white');
+            } else if (type === 'error') {
+                statusBox.classList.add('bg-red-600', 'text-white');
+            } else {
+                statusBox.classList.add('bg-blue-900/50', 'text-blue-200');
+            }
+        }
+        
+        // --- NEW: Challenge Functions ---
+        function pickNewTarget() {
+            targetFound = false;
+            // Get a random item, but not the same as the current one
+            let newTarget = currentTarget;
+            while (newTarget === currentTarget) {
+                newTarget = TARGET_OBJECTS[Math.floor(Math.random() * TARGET_OBJECTS.length)];
+            }
+            currentTarget = newTarget;
+            promptMessage.textContent = `Please show me a: ${currentTarget.toUpperCase()}`;
+            showStatus('Challenge: Find the new item', 'info');
+        }
+
+        // --- Camera Function (Unchanged) ---
+        async function toggleCamera() {
+            if (isCameraOn) {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                }
+                video.srcObject = null;
+                isCameraOn = false;
+                showStatus('Camera is off', 'info');
+                contentDiv.classList.add('hidden');
+                loadingDiv.classList.remove('hidden');
+                loadingText.textContent = 'Camera is off. Click "Toggle Camera" to turn it on.';
+            } else {
+                try {
+                    loadingText.textContent = 'Starting Webcam...';
+                    loadingDiv.classList.remove('hidden'); // Show loader while starting cam
+                    
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: 640, height: 480 },
+                        audio: false
+                    });
+                    video.srcObject = stream;
+                    
+                    video.onloadedmetadata = () => {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        contentDiv.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
+                        
+                        loadingDiv.classList.add('hidden');
+                        contentDiv.classList.remove('hidden');
+                        isCameraOn = true;
+                        showStatus('Camera is on. Ready to detect objects.', 'info');
+                    };
+                } catch (error) {
+                    console.error('Failed to start webcam:', error);
+                    loadingText.textContent = 'Error: Could not start webcam.';
+                    loadingText.classList.add('text-red-400');
+                    if (error.name === "NotAllowedError") {
+                        loadingText.textContent = 'Error: Webcam access denied. Please allow camera permissions.';
+                    }
+                    showStatus('Webcam error', 'error');
+                }
+            }
+        }
+
+        // --- Main Initialization Function (Updated) ---
+        async function runDetection() {
+            try {
+                console.log('Loading model...');
+                model = await cocoSsd.load();
+                console.log('Model loaded.');
+                
+                await toggleCamera(); // Start camera automatically
+                
+                // Enable controls now that model and camera are ready
+                startBtn.disabled = false;
+                toggleCamBtn.disabled = false;
+                resetBtn.disabled = false;
+                
+                if (isCameraOn) {
+                    showStatus('Ready for challenge. Press Start.', 'info');
+                } else {
+                    showStatus('Model loaded. Please start camera.', 'info');
+                }
+                
+            } catch (error) {
+                console.error('Failed to initialize:', error);
+                loadingText.textContent = 'Error: Could not load model.';
+                loadingText.classList.add('text-red-400');
+                showStatus('Model load error', 'error');
+            }
+        }
+
+        // --- Detection Loop Function (Updated) ---
+        async function detectFrame() {
+            if (!model || !isDetecting || !isCameraOn || targetFound) return; // Pause if target already found
+
+            // 1. Get predictions
+            const predictions = await model.detect(video);
+
+            // 2. Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 3. Filter predictions (exclude 'person' and check confidence)
+            const filteredPredictions = predictions.filter(prediction => {
+                return prediction.class !== 'person' && prediction.score >= confidenceThreshold;
+            });
+
+            // 4. Draw boxes
+            drawBoundingBoxes(filteredPredictions);
+            
+            // 5. --- NEW: Update detected objects list ---
+            updateDetectedList(filteredPredictions);
+
+            // 6. --- NEW: Check for target object ---
+            if (currentTarget) {
+                const found = filteredPredictions.find(p => p.class === currentTarget);
+                if (found) {
+                    targetFound = true; // Set flag to pause detection
+                    showStatus(`Great! You found the ${currentTarget}!`, 'success');
+                    promptMessage.textContent = `✅ Found ${currentTarget.toUpperCase()}!`;
+                    // After 2 seconds, pick a new item
+                    setTimeout(() => {
+                        pickNewTarget();
+                    }, 2000);
+                }
+            }
+
+            // 7. Loop
+            requestAnimationFrame(detectFrame);
+        }
+
+        // --- NEW: Update Detected List UI ---
+        function updateDetectedList(predictions) {
+            if (predictions.length === 0) {
+                detectedList.innerHTML = '---';
+                return;
+            }
+            
+            // Get unique class names
+            const uniqueObjects = [...new Set(predictions.map(p => p.class))];
+            
+            detectedList.innerHTML = uniqueObjects
+                .map(obj => `<span class="bg-slate-800 px-2 py-1 rounded">${obj}</span>`)
+                .join(' ');
+        }
+
+        // --- Drawing Function (Unchanged) ---
+        function drawBoundingBoxes(predictions) {
+            ctx.strokeStyle = '#00FFFF'; // Bright cyan
+            ctx.lineWidth = 2;
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#00FFFF';
+
+            predictions.forEach(prediction => {
+                const [x, y, width, height] = prediction.bbox;
+                const mirroredX = canvas.width - x - width; // Adjust for mirrored video
+
+                // Draw the bounding box
+                ctx.beginPath();
+                ctx.rect(mirroredX, y, width, height);
+                ctx.stroke();
+
+                // Draw the label
+                const text = `${prediction.class} (${Math.round(prediction.score * 100)}%)`;
+                const textWidth = ctx.measureText(text).width;
+                ctx.fillRect(mirroredX, y, textWidth + 8, 20);
+                
+                ctx.fillStyle = '#000000'; // Text color
+                ctx.fillText(text, mirroredX + 4, y + 16);
+                
+                ctx.fillStyle = '#00FFFF'; // Reset for next box
+            });
+        }
+
+        // --- Event Listeners (Updated) ---
+        startBtn.addEventListener('click', () => {
+            if (!isCameraOn) {
+                showStatus('Please turn on the camera first', 'error');
+                return;
+            }
+            isDetecting = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            skipBtn.disabled = false; // NEW
+            startTimer();
+            promptBox.classList.remove('hidden'); // NEW
+            pickNewTarget(); // NEW
+            detectFrame();
+        });
+
+        stopBtn.addEventListener('click', () => {
+            isDetecting = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            skipBtn.disabled = true; // NEW
+            stopTimer();
+            showStatus('Challenge stopped', 'info');
+            promptBox.classList.add('hidden'); // NEW
+            currentTarget = null;
+            detectedList.innerHTML = '---';
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        toggleCamBtn.addEventListener('click', toggleCamera);
+
+        resetBtn.addEventListener('click', () => {
+            isDetecting = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            skipBtn.disabled = true; // NEW
+            resetTimer();
+            showStatus('Ready to start challenge', 'info');
+            promptBox.classList.add('hidden'); // NEW
+            currentTarget = null;
+            detectedList.innerHTML = '---';
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+        
+        // --- NEW Event Listeners ---
+        skipBtn.addEventListener('click', () => {
+            if (isDetecting) {
+                pickNewTarget();
+            }
+        });
+
+        confidenceSlider.addEventListener('input', (e) => {
+            confidenceThreshold = parseFloat(e.target.value);
+            confidenceLabel.textContent = `${Math.round(confidenceThreshold * 100)}%`;
+        });
+
+        // Start the application
+        runDetection();
+    </script>
+</body>
+</html>

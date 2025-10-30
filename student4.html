@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interview with Voice Transcription</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load TensorFlow.js and COCO-SSD model -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@latest/dist/coco-ssd.min.js"></script>
+    <style>
+        /* Custom styles for the webcam interface */
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            background-color: #1e293b;
+        }
+        #video, #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #video {
+            transform: scaleX(-1); /* Mirror effect */
+        }
+        #canvas {
+            z-index: 10;
+        }
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .timer {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        .control-btn {
+            transition: all 0.2s ease;
+        }
+        .control-btn:hover {
+            transform: translateY(-2px);
+        }
+        .transcript-container {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #4b5563;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            background-color: #1f2937;
+        }
+        .transcript-line {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            background-color: #374151;
+        }
+        .transcript-line.user {
+            background-color: #1e40af;
+        }
+        .transcript-line.ai {
+            background-color: #065f46;
+        }
+        .pulse-recording {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .question-indicator {
+            background-color: #7c3aed;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-800 min-h-screen flex items-center justify-center p-4 font-sans text-white">
+
+    <div class="bg-slate-800 p-6 md:p-8 rounded-xl shadow-2xl w-full max-w-6xl border border-slate-700">
+        <h1 class="text-2xl md:text-3xl font-bold text-center text-white mb-2">
+            AI Interview
+        </h1>
+        <p class="text-center text-slate-300 mb-6">
+            Real-time object detection with voice transcription and AI questions
+        </p>
+
+        <!-- Timer and Status Display -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="timer text-xl bg-slate-700 px-4 py-2 rounded-lg">
+                <span id="timer-minutes">00</span>:<span id="timer-seconds">00</span>
+            </div>
+            <div id="status-box" class="bg-blue-900/50 text-blue-200 px-4 py-2 rounded-lg">
+                <p id="status-message">Ready to start</p>
+            </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-6">
+            <!-- Left Column: Video and Controls -->
+            <div class="flex-1">
+                <!-- Loading State -->
+                <div id="loading" class="flex flex-col items-center justify-center p-8">
+                    <div class="loader"></div>
+                    <p id="loading-text" class="text-slate-300 mt-4">Loading Machine Learning Model...</p>
+                </div>
+
+                <!-- Main Content (Video + Canvas) -->
+                <div id="content" class="video-container hidden mx-auto" style="aspect-ratio: 640 / 480;">
+                    <video id="video" autoplay playsinline muted></video>
+                    <canvas id="canvas"></canvas>
+                    
+                    <!-- User Face UI Element -->
+                    <div class="absolute top-4 left-4 bg-black/70 rounded-lg p-3 flex items-center space-x-3">
+                        <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm">USER FACE</span>
+                    </div>
+                    
+                    <!-- Speaker UI Element -->
+                    <div class="absolute top-4 right-4 bg-black/70 rounded-lg p-3 flex items-center space-x-3">
+                        <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span class="text-sm">Speaker</span>
+                    </div>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="flex flex-wrap justify-center gap-4 mt-6">
+                    <button id="start-btn" class="control-btn bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                        </svg>
+                        Start Interview
+                    </button>
+                    <button id="stop-btn" class="control-btn bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium flex items-center" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" />
+                        </svg>
+                        Stop Interview
+                    </button>
+                    <button id="toggle-cam-btn" class="control-btn bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                        </svg>
+                        Toggle Camera
+                    </button>
+                    <button id="mute-btn" class="control-btn bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg font-medium flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828a1 1 0 010-1.415z" clip-rule="evenodd" />
+                        </svg>
+                        Mute
+                    </button>
+                    <button id="reset-btn" class="control-btn bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                        </svg>
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Column: Transcription -->
+            <div class="flex-1">
+                <div class="bg-slate-700 rounded-xl p-4 h-full">
+                    <h2 class="text-xl font-bold mb-4 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd" />
+                        </svg>
+                        Live Transcription
+                        <span id="recording-indicator" class="ml-2 text-xs bg-red-500 text-white px-2 py-1 rounded-full hidden pulse-recording">RECORDING</span>
+                    </h2>
+                    
+                    <!-- Current Question Indicator -->
+                    <div id="current-question" class="question-indicator hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                        </svg>
+                        <span id="question-text">Current question will appear here</span>
+                    </div>
+                    
+                    <div class="transcript-container" id="transcript-container">
+                        <div class="transcript-line ai">
+                            <strong>AI:</strong> Welcome to the interview. I'll be asking you a series of questions. Please answer each one as clearly as possible.
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 text-sm text-slate-300">
+                        <p>Your speech will be transcribed in real-time during the interview.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get references to all HTML elements
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const loadingDiv = document.getElementById('loading');
+        const loadingText = document.getElementById('loading-text');
+        const contentDiv = document.getElementById('content');
+        const statusBox = document.getElementById('status-box');
+        const statusMessage = document.getElementById('status-message');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const toggleCamBtn = document.getElementById('toggle-cam-btn');
+        const muteBtn = document.getElementById('mute-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const timerMinutes = document.getElementById('timer-minutes');
+        const timerSeconds = document.getElementById('timer-seconds');
+        const transcriptContainer = document.getElementById('transcript-container');
+        const recordingIndicator = document.getElementById('recording-indicator');
+        const currentQuestionDiv = document.getElementById('current-question');
+        const questionText = document.getElementById('question-text');
+
+        // Application state variables
+        let model = null;
+        let stream = null;
+        let audioStream = null;
+        let isDetecting = false;
+        let isCameraOn = false;
+        let isMuted = false;
+        let isRecording = false;
+        let timerInterval = null;
+        let timerSecondsValue = 0;
+        let timerMinutesValue = 0;
+        let recognition = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        
+        // Interview questions
+        const interviewQuestions = [
+            "Can you tell me about yourself and your professional background?",
+            "What interests you about this position and our company?",
+            "What do you consider your greatest professional strength?",
+            "Can you describe a challenging work situation and how you handled it?",
+            "Where do you see yourself in five years?",
+            "How do you handle pressure or stressful situations at work?",
+            "What is your approach to working in a team environment?",
+            "Can you tell me about a time you made a mistake and how you handled it?",
+            "What are your salary expectations for this role?",
+            "Do you have any questions for me about the role or company?"
+        ];
+        
+        let currentQuestionIndex = 0;
+        let questionTimer = null;
+        let waitingForAnswer = false;
+
+        // Function to update the timer display
+        function updateTimer() {
+            timerSecondsValue++;
+            if (timerSecondsValue >= 60) {
+                timerSecondsValue = 0;
+                timerMinutesValue++;
+            }
+            
+            timerMinutes.textContent = timerMinutesValue.toString().padStart(2, '0');
+            timerSeconds.textContent = timerSecondsValue.toString().padStart(2, '0');
+        }
+
+        // Function to start the timer
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        // Function to stop the timer
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        // Function to reset the timer
+        function resetTimer() {
+            stopTimer();
+            timerSecondsValue = 0;
+            timerMinutesValue = 0;
+            timerMinutes.textContent = '00';
+            timerSeconds.textContent = '00';
+        }
+
+        // Function to show a status message
+        function showStatus(message) {
+            statusMessage.textContent = message;
+        }
+
+        // Function to ask the next interview question
+        function askNextQuestion() {
+            if (currentQuestionIndex < interviewQuestions.length) {
+                const question = interviewQuestions[currentQuestionIndex];
+                questionText.textContent = question;
+                currentQuestionDiv.classList.remove('hidden');
+                
+                // Add the question to the transcript
+                addTranscriptLine(question, 'ai');
+                
+                // Set a flag that we're waiting for an answer
+                waitingForAnswer = true;
+                
+                // Set a timer to move to the next question if no answer is detected
+                if (questionTimer) clearTimeout(questionTimer);
+                questionTimer = setTimeout(() => {
+                    if (waitingForAnswer) {
+                        addTranscriptLine("No response detected. Let's move to the next question.", 'ai');
+                        currentQuestionIndex++;
+                        setTimeout(askNextQuestion, 2000);
+                    }
+                }, 30000); // 30 seconds to answer
+                
+                currentQuestionIndex++;
+            } else {
+                // No more questions
+                addTranscriptLine("That concludes our interview questions. Thank you for your time!", 'ai');
+                currentQuestionDiv.classList.add('hidden');
+                stopInterview();
+            }
+        }
+
+        // Function to toggle camera on/off
+        async function toggleCamera() {
+            if (isCameraOn) {
+                // Turn camera off
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                }
+                video.srcObject = null;
+                isCameraOn = false;
+                showStatus('Camera is off');
+                contentDiv.classList.add('hidden');
+                loadingDiv.classList.remove('hidden');
+                loadingText.textContent = 'Camera is off. Click "Toggle Camera" to turn it on.';
+            } else {
+                // Turn camera on
+                try {
+                    loadingText.textContent = 'Starting Webcam...';
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: 640, height: 480 },
+                        audio: false
+                    });
+                    video.srcObject = stream;
+                    
+                    video.onloadedmetadata = () => {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        contentDiv.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
+                        
+                        loadingDiv.classList.add('hidden');
+                        contentDiv.classList.remove('hidden');
+                        isCameraOn = true;
+                        showStatus('Camera is on. Ready to detect objects.');
+                    };
+                } catch (error) {
+                    console.error('Failed to start webcam:', error);
+                    loadingText.textContent = 'Error: Could not start webcam.';
+                    loadingText.classList.add('text-red-400');
+                    if (error.name === "NotAllowedError") {
+                        loadingText.textContent = 'Error: Webcam access denied. Please allow camera permissions.';
+                    }
+                }
+            }
+        }
+
+        // Function to toggle mute/unmute
+        function toggleMute() {
+            if (!isRecording) return;
+            
+            isMuted = !isMuted;
+            
+            if (isMuted) {
+                // Stop speech recognition
+                if (recognition) {
+                    recognition.stop();
+                }
+                // Stop audio recording
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                }
+                muteBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                    Unmute
+                `;
+                muteBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
+                muteBtn.classList.add('bg-gray-600', 'hover:bg-gray-700');
+                recordingIndicator.classList.add('hidden');
+                showStatus('Microphone is muted');
+            } else {
+                // Start speech recognition
+                if (recognition) {
+                    recognition.start();
+                }
+                // Start audio recording
+                if (mediaRecorder) {
+                    mediaRecorder.start();
+                }
+                muteBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828a1 1 0 010-1.415z" clip-rule="evenodd" />
+                    </svg>
+                    Mute
+                `;
+                muteBtn.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                muteBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+                recordingIndicator.classList.remove('hidden');
+                showStatus('Microphone is active');
+            }
+        }
+
+        // Function to start voice recording and transcription
+        async function startVoiceRecording() {
+            try {
+                // Request microphone access
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Set up MediaRecorder for audio recording
+                mediaRecorder = new MediaRecorder(audioStream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    // Create a blob from the recorded audio chunks
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    // In a real application, you would send this blob to a server for processing
+                    console.log('Audio recording stopped', audioBlob);
+                };
+                
+                // Start recording
+                mediaRecorder.start();
+                
+                // Set up speech recognition
+                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    recognition = new SpeechRecognition();
+                    
+                    recognition.continuous = true;
+                    recognition.interimResults = true;
+                    recognition.lang = 'en-US';
+                    
+                    recognition.onresult = (event) => {
+                        let finalTranscript = '';
+                        let interimTranscript = '';
+                        
+                        for (let i = event.resultIndex; i < event.results.length; i++) {
+                            const transcript = event.results[i][0].transcript;
+                            if (event.results[i].isFinal) {
+                                finalTranscript += transcript;
+                            } else {
+                                interimTranscript += transcript;
+                            }
+                        }
+                        
+                        // Update the transcript display
+                        if (finalTranscript) {
+                            addTranscriptLine(finalTranscript, 'user');
+                            
+                            // If we were waiting for an answer, move to the next question after a short delay
+                            if (waitingForAnswer) {
+                                waitingForAnswer = false;
+                                if (questionTimer) clearTimeout(questionTimer);
+                                
+                                // Wait a moment then ask the next question
+                                setTimeout(() => {
+                                    askNextQuestion();
+                                }, 3000);
+                            }
+                        } else if (interimTranscript) {
+                            updateLastTranscriptLine(interimTranscript, 'user');
+                        }
+                    };
+                    
+                    recognition.onerror = (event) => {
+                        console.error('Speech recognition error', event.error);
+                    };
+                    
+                    recognition.onend = () => {
+                        // Restart recognition if it ended unexpectedly (except when muted)
+                        if (!isMuted && isRecording) {
+                            recognition.start();
+                        }
+                    };
+                    
+                    // Start recognition
+                    recognition.start();
+                } else {
+                    console.warn('Speech recognition not supported in this browser');
+                    showStatus('Speech recognition not supported');
+                }
+                
+                isRecording = true;
+                recordingIndicator.classList.remove('hidden');
+                muteBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('Error starting voice recording:', error);
+                showStatus('Error: Could not access microphone');
+            }
+        }
+
+        // Function to stop voice recording and transcription
+        function stopVoiceRecording() {
+            isRecording = false;
+            
+            if (recognition) {
+                recognition.stop();
+            }
+            
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+            
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+                audioStream = null;
+            }
+            
+            recordingIndicator.classList.add('hidden');
+            muteBtn.disabled = true;
+        }
+
+        // Function to add a new transcript line
+        function addTranscriptLine(text, speaker) {
+            const transcriptLine = document.createElement('div');
+            transcriptLine.className = `transcript-line ${speaker}`;
+            transcriptLine.innerHTML = `<strong>${speaker.toUpperCase()}:</strong> ${text}`;
+            transcriptContainer.appendChild(transcriptLine);
+            transcriptContainer.scrollTop = transcriptContainer.scrollHeight;
+        }
+
+        // Function to update the last transcript line (for interim results)
+        function updateLastTranscriptLine(text, speaker) {
+            const lines = transcriptContainer.getElementsByClassName('transcript-line');
+            if (lines.length > 0) {
+                const lastLine = lines[lines.length - 1];
+                if (lastLine.classList.contains(speaker) && !lastLine.classList.contains('final')) {
+                    lastLine.innerHTML = `<strong>${speaker.toUpperCase()}:</strong> ${text} <em>(typing...)</em>`;
+                } else {
+                    const newLine = document.createElement('div');
+                    newLine.className = `transcript-line ${speaker}`;
+                    newLine.innerHTML = `<strong>${speaker.toUpperCase()}:</strong> ${text} <em>(typing...)</em>`;
+                    transcriptContainer.appendChild(newLine);
+                }
+            } else {
+                addTranscriptLine(text + ' <em>(typing...)</em>', speaker);
+            }
+            transcriptContainer.scrollTop = transcriptContainer.scrollHeight;
+        }
+
+        // Function to start the interview
+        function startInterview() {
+            isDetecting = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            startTimer();
+            showStatus('Interview in progress. Detecting objects...');
+            
+            // Start voice recording and transcription
+            startVoiceRecording();
+            
+            // Start asking questions after a brief delay
+            setTimeout(() => {
+                askNextQuestion();
+            }, 2000);
+            
+            detectFrame();
+        }
+
+        // Function to stop the interview
+        function stopInterview() {
+            isDetecting = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            stopTimer();
+            showStatus('Interview stopped');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Stop voice recording and transcription
+            stopVoiceRecording();
+            
+            // Clear question timer
+            if (questionTimer) clearTimeout(questionTimer);
+            waitingForAnswer = false;
+            currentQuestionDiv.classList.add('hidden');
+        }
+
+        // --- Main Function ---
+        async function runDetection() {
+            try {
+                // 1. Load the COCO-SSD model
+                console.log('Loading model...');
+                model = await cocoSsd.load();
+                console.log('Model loaded.');
+                
+                // 2. Start the camera
+                await toggleCamera();
+                
+                // 3. Enable the start button
+                startBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('Failed to initialize:', error);
+                loadingText.textContent = 'Error: Could not load model.';
+                loadingText.classList.add('text-red-400');
+            }
+        }
+
+        // --- Detection Loop Function ---
+        async function detectFrame() {
+            if (!model || !isDetecting || !isCameraOn) return;
+
+            // 1. Get predictions from the model
+            const predictions = await model.detect(video);
+
+            // 2. Clear the canvas for new drawings
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 3. Filter predictions to *exclude* 'person'
+            const filteredPredictions = predictions.filter(prediction => {
+                return prediction.class !== 'person';
+            });
+
+            // 4. Draw boxes for the filtered predictions
+            drawBoundingBoxes(filteredPredictions);
+
+            // 5. Loop forever
+            requestAnimationFrame(detectFrame);
+        }
+
+        // --- Drawing Function ---
+        function drawBoundingBoxes(predictions) {
+            // Set styling for the boxes
+            ctx.strokeStyle = '#00FFFF'; // Bright cyan
+            ctx.lineWidth = 2;
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#00FFFF';
+
+            predictions.forEach(prediction => {
+                const [x, y, width, height] = prediction.bbox;
+                
+                // Adjust for mirrored video
+                const mirroredX = canvas.width - x - width;
+
+                // Draw the bounding box
+                ctx.beginPath();
+                ctx.rect(mirroredX, y, width, height);
+                ctx.stroke();
+
+                // Draw the label background
+                const text = `${prediction.class} (${Math.round(prediction.score * 100)}%)`;
+                const textWidth = ctx.measureText(text).width;
+                ctx.fillRect(mirroredX, y, textWidth + 8, 20);
+
+                // Draw the label text (in black)
+                ctx.fillStyle = '#000000';
+                ctx.fillText(text, mirroredX + 4, y + 16);
+                
+                // Reset fillStyle for the next box
+                ctx.fillStyle = '#00FFFF';
+            });
+        }
+
+        // Event Listeners for buttons
+        startBtn.addEventListener('click', startInterview);
+
+        stopBtn.addEventListener('click', stopInterview);
+
+        toggleCamBtn.addEventListener('click', toggleCamera);
+        
+        muteBtn.addEventListener('click', toggleMute);
+
+        resetBtn.addEventListener('click', () => {
+            isDetecting = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            resetTimer();
+            showStatus('Ready to start');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Stop voice recording and transcription
+            stopVoiceRecording();
+            
+            // Clear question timer
+            if (questionTimer) clearTimeout(questionTimer);
+            waitingForAnswer = false;
+            currentQuestionDiv.classList.add('hidden');
+            
+            // Reset question index
+            currentQuestionIndex = 0;
+            
+            // Clear transcript (except the initial message)
+            const lines = transcriptContainer.getElementsByClassName('transcript-line');
+            while (lines.length > 1) {
+                lines[1].remove();
+            }
+            
+            // Add back the initial welcome message if it's not there
+            if (lines.length === 0) {
+                addTranscriptLine("Welcome to the interview. I'll be asking you a series of questions. Please answer each one as clearly as possible.", 'ai');
+            }
+        });
+
+        // Start the application
+        runDetection();
+    </script>
+</body>
+</html>

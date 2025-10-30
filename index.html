@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interview - Intelligent Recruitment Platform</title>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load the 'Inter' font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS for premium effects -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+        
+        .premium-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .glow-effect {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+        }
+        
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-5px);
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-gray-300">
+
+    <!-- Navigation Bar -->
+    <nav class="w-full p-4 px-8 premium-card flex justify-between items-center fixed top-0 left-0 z-10 border-b border-gray-700 border-opacity-50">
+        <!-- Left Side: Logo and Website Name -->
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+                AI Interview
+            </div>
+        </div>
+        
+        <!-- Right Side: Navigation Links -->
+        <div class="flex items-center gap-8">
+            <a href="#" class="text-gray-300 hover:text-white transition-colors duration-200 font-medium">About</a>
+            <a href="#" class="text-gray-300 hover:text-white transition-colors duration-200 font-medium">Contact</a>
+            <button class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-lg font-medium hover:from-indigo-600 hover:to-purple-600 transition-all duration-300">
+                Get Started
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <div class="flex flex-col lg:flex-row min-h-screen pt-24 p-4 max-w-7xl mx-auto">
+        <!-- Left Content Panel -->
+        <div class="w-full lg:w-1/2 p-6 lg:p-12 space-y-8 flex flex-col justify-center">
+            <div class="space-y-6">
+                <div class="inline-block bg-indigo-900 bg-opacity-30 text-indigo-300 px-4 py-2 rounded-full text-sm font-medium">
+                    AI-POWERED RECRUITMENT PLATFORM
+                </div>
+                
+                <h1 class="text-4xl lg:text-5xl font-bold text-white leading-tight">
+                    Revolutionizing Talent Acquisition with <span class="hero-gradient">AI Intelligence</span>
+                </h1>
+                
+                <p class="text-xl text-gray-400 max-w-xl">
+                    Our cutting-edge AI platform transforms how companies discover talent and candidates showcase their skills through intelligent interview simulations.
+                </p>
+                
+                <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                    <button class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:from-indigo-600 hover:to-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl" onclick="window.location.href='student5.html'">
+                        Try AI Interview
+                    </button>
+                    <button class="border border-gray-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-800 transition-all duration-300">
+                        Learn More
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-6 pt-8">
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="text-gray-400">Unbiased Evaluation</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="text-gray-400">Real-time Analytics</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Content Panel -->
+        <div class="w-full lg:w-1/2 p-6 lg:p-12 flex items-center justify-center">
+            <div class="premium-card glow-effect rounded-2xl p-8 w-full max-w-md space-y-8">
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
+                        AI
+                    </div>
+                    <h2 class="text-2xl font-bold text-white">Access Platform</h2>
+                    <p class="text-gray-400 mt-2">Select your role to continue</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <button 
+                        class="w-full premium-card hover-lift p-4 rounded-xl text-left flex items-center gap-4 border border-transparent hover:border-indigo-500 transition-all duration-300"
+                        onclick="window.location.href='student5.html'">
+                        <div class="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l-9 5m9-5v9" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">Student</h3>
+                            <p class="text-sm text-gray-400">Practice and showcase your skills</p>
+                        </div>
+                    </button>
+                    
+                    <button 
+                        class="w-full premium-card hover-lift p-4 rounded-xl text-left flex items-center gap-4 border border-transparent hover:border-indigo-500 transition-all duration-300"
+                        onclick="window.location.href='professional.html'">
+                        <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">Professional</h3>
+                            <p class="text-sm text-gray-400">Advance your career</p>
+                        </div>
+                    </button>
+                    
+                    <button 
+                        class="w-full premium-card hover-lift p-4 rounded-xl text-left flex items-center gap-4 border border-transparent hover:border-indigo-500 transition-all duration-300"
+                        onclick="window.location.href='administrator.html'">
+                        <div class="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">Administrator</h3>
+                            <p class="text-sm text-gray-400">Manage platform and users</p>
+                        </div>
+                    </button>
+                </div>
+                
+                <div class="text-center text-sm text-gray-500 pt-4">
+                    Trusted by leading companies worldwide
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="py-16 px-4 max-w-7xl mx-auto">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl font-bold text-white mb-4">How Our AI Interview Platform Works</h2>
+            <p class="text-xl text-gray-400 max-w-2xl mx-auto">A seamless process that connects talented candidates with forward-thinking companies</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="premium-card p-6 rounded-xl hover-lift text-center">
+                <div class="step-number mx-auto">1</div>
+                <h3 class="text-xl font-semibold text-white mb-2">Create Profile</h3>
+                <p class="text-gray-400">Candidates build comprehensive profiles showcasing their skills, experience, and career aspirations.</p>
+            </div>
+            
+            <div class="premium-card p-6 rounded-xl hover-lift text-center">
+                <div class="step-number mx-auto">2</div>
+                <h3 class="text-xl font-semibold text-white mb-2">AI Interview</h3>
+                <p class="text-gray-400">Our intelligent AI conducts realistic interview simulations, evaluating both technical and soft skills.</p>
+            </div>
+            
+            <div class="premium-card p-6 rounded-xl hover-lift text-center">
+                <div class="step-number mx-auto">3</div>
+                <h3 class="text-xl font-semibold text-white mb-2">Skill Assessment</h3>
+                <p class="text-gray-400">Candidates receive detailed feedback and companies get comprehensive skill analysis reports.</p>
+            </div>
+            
+            <div class="premium-card p-6 rounded-xl hover-lift text-center">
+                <div class="step-number mx-auto">4</div>
+                <h3 class="text-xl font-semibold text-white mb-2">Perfect Match</h3>
+                <p class="text-gray-400">Our algorithm connects the right candidates with companies that match their skills and values.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benefits Section -->
+    <div class="py-16 px-4 max-w-7xl mx-auto">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl font-bold text-white mb-4">Benefits for Companies & Candidates</h2>
+            <p class="text-xl text-gray-400 max-w-2xl mx-auto">Creating value for both sides of the recruitment process</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div>
+                <h3 class="text-2xl font-bold text-white mb-6 text-center md:text-left">For Companies</h3>
+                <div class="space-y-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center mt-1 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-white">Efficient Screening</h4>
+                            <p class="text-gray-400">Save time with AI-powered candidate screening and skill assessment.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center mt-1 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-white">Bias-Free Selection</h4>
+                            <p class="text-gray-400">Eliminate unconscious bias with objective AI evaluation focused solely on skills.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center mt-1 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-white">Quality Candidates</h4>
+                            <p class="text-gray-400">Access pre-vetted candidates who have demonstrated their capabilities through AI interviews.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-2xl font-bold text-white mb-6 text-center md:text-left">For Candidates</h3>
+                <div class="space-y-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center mt-1 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-white">Skill Development</h4>
+                            <p class="text-gray-400">Practice and improve your interview skills with realistic AI simulations.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center mt-1 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-white">Fair Evaluation</h4>
+                            <p class="text-gray-400">Showcase your true potential without bias based on background or demographics.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center mt-1 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-white">Career Opportunities</h4>
+                            <p class="text-gray-400">Connect with companies actively seeking candidates with your specific skill set.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 py-12 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center gap-3 mb-6 md:mb-0">
+                    <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+                        AI Interview
+                    </div>
+                </div>
+                
+                <div class="flex gap-8">
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">About</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">Contact</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
+                </div>
+            </div>
+            
+            <div class="text-center text-gray-500 text-sm mt-8">
+                &copy; 2023 AI Interview Platform. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
